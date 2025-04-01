@@ -22,7 +22,7 @@
             </ul>
         </div>
 
-        <div v-if="selectedEvent" class="single-event-container">
+        <div v-if="selectedEvent" id="event-details" ref="eventDetails" class="single-event-container">
             <a href="#" @click.prevent="deselectEvent" class="back-link">Powrót do listy</a>
 
             <h2>{{ selectedEvent.title }}</h2>
@@ -59,7 +59,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 
 export default {
@@ -70,6 +70,7 @@ export default {
         const sortKey = ref('title');
         const sortOrder = ref('asc');
         const countdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        const eventDetails = ref(null);
         let countdownInterval = null;
 
         const fetchEvents = async () => {
@@ -86,8 +87,21 @@ export default {
                 const response = await axios.get(`/api/events/${id}`);
                 selectedEvent.value = response.data;
                 startCountdown();
+
+                // Po załadowaniu wydarzenia, poczekaj na zaktualizowanie DOM i przewiń do szczegółów
+                await nextTick();
+                scrollToEventDetails();
             } catch (error) {
                 console.error('Błąd podczas pobierania szczegółów wydarzenia:', error);
+            }
+        };
+
+        const scrollToEventDetails = () => {
+            if (eventDetails.value) {
+                eventDetails.value.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             }
         };
 
@@ -97,6 +111,8 @@ export default {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
             }
+            // Przewiń z powrotem do góry po powrocie do listy
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const sortedEvents = computed(() => {
@@ -180,6 +196,7 @@ export default {
             sortKey,
             sortOrder,
             countdown,
+            eventDetails,
             fetchEvents,
             selectEvent,
             deselectEvent,
